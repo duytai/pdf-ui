@@ -8,6 +8,7 @@ import Select from 'react-select'
 import { compose, withHandlers, withState } from 'recompose'
 import update from 'immutability-helper'
 import 'react-select/dist/react-select.css'
+import { Settings } from '../../contexts'
 import './Home.css'
 
 const CHANGE_ORDER_STATUS = gql `
@@ -25,6 +26,9 @@ const ORDERS = gql `
       totalCount
       orders {
         id
+        cartItems {
+          productConfig
+        }
         status
         createdAt
       }
@@ -66,12 +70,13 @@ class Home extends PureComponent {
                         <th>Order Code</th>
                         <th>Status</th>
                         <th>Created At</th>
+                        <th>Download</th>
                       </tr>
                     </thead>
                     <tbody>
                       {
                         orders.map((order, index) => {
-                          const { id, status, createdAt } = order
+                          const { id, status, createdAt, cartItems } = order
                           const orderCode = id.split('-')[0].toUpperCase()
                           return (
                             <tr key={id}>
@@ -127,6 +132,24 @@ class Home extends PureComponent {
                                 </Mutation>
                               </td>
                               <td>{ moment(createdAt).format('DD/MM/YYYY') }</td>
+                              <Settings.Consumer>
+                                {
+                                  ({ FILE_SERVER }) => (
+                                    <td>
+                                      {
+                                        cartItems.map(({ productConfig }, index) => (
+                                          <a 
+                                            target='_blank'
+                                            key={index} 
+                                            href={`${FILE_SERVER}/${id}_${index}.pdf`}
+                                          >{ productConfig.type } | 
+                                          </a>
+                                        ))
+                                      }
+                                    </td>
+                                  ) 
+                                }
+                              </Settings.Consumer>
                             </tr>
                           )
                         })
