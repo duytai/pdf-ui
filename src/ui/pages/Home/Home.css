@@ -1,0 +1,14 @@
+.pagination li {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.pagination .active {
+  background-color: #cecece;
+  border-radius: 5px;
+}
+
+.pagination .break a {
+    cursor: default;
+}
+
