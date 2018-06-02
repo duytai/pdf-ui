@@ -1,14 +1,24 @@
 import React, { PureComponent } from 'react'
-import { Query } from 'react-apollo'
+import { Query, Mutation } from 'react-apollo'
 import moment from 'moment'
 import gql from 'graphql-tag'
 import { Container, Table } from 'reactstrap'
 import ReactPaginate from 'react-paginate'
-import { compose, withHandlers, withState } from 'recompose'
 import Select from 'react-select'
+import { compose, withHandlers, withState } from 'recompose'
+import update from 'immutability-helper'
 import 'react-select/dist/react-select.css'
 import './Home.css'
 
+const CHANGE_ORDER_STATUS = gql `
+  mutation changeOrderStatus($orderId: ID!, $status: OrderStatus!) {
+    changeOrderStatus(orderId: $orderId, status: $status) {
+      id
+      status
+      createdAt
+    }
+  }
+`
 const ORDERS = gql `
   query orders($filter: OrderFilter!, $skip: Int, $limit: Int) {
     orders(filter: $filter, skip: $skip, limit: $limit) {
@@ -23,7 +33,10 @@ const ORDERS = gql `
 `  
 class Home extends PureComponent {
   render() {
-    const { handlePageChange, orderQuery } = this.props
+    const { 
+      handlePageChange, 
+      orderQuery, 
+    } = this.props
     const { skip, limit } = orderQuery
     const statusOptions = [
       'NEW',
@@ -65,15 +78,53 @@ class Home extends PureComponent {
                               <td>{ skip + index + 1 }</td>
                               <td>{ orderCode }</td>
                               <td>
-                                <Select
-                                  value={status}
-                                  onChange={() => {}}
-                                  options={statusOptions.map(value => ({ 
-                                    label: value, 
-                                    value, 
-                                  }))}
-                                  clearable={false}
-                                />
+                                <Mutation
+                                  mutation={CHANGE_ORDER_STATUS}
+                                  update={(cache, { data: { changeOrderStatus } }) => {
+                                    const data = cache.readQuery({
+                                      query: ORDERS, 
+                                      variables: orderQuery, 
+                                    })
+                                    cache.writeQuery({
+                                      query: ORDERS,
+                                      variables: orderQuery,
+                                      data: update(data, {
+                                        orders: {
+                                          orders: {
+                                            $apply: orders => {
+                                              const { id, status } = changeOrderStatus
+                                              return orders.map((order) => {
+                                                if (order.id === id) {
+                                                  order.status = status
+                                                }
+                                                return order
+                                              })
+                                            }
+                                          }
+                                        }
+                                      })
+                                    })
+                                  }}
+                                >
+                                  {
+                                    (changeOrderStatus) => (
+                                      <Select
+                                        value={status}
+                                        onChange={({ value }) => changeOrderStatus({ 
+                                          variables: { 
+                                            orderId: id,
+                                            status: value,
+                                          },
+                                        })}
+                                        options={statusOptions.map(value => ({ 
+                                          label: value, 
+                                          value, 
+                                        }))}
+                                        clearable={false}
+                                      />
+                                    )
+                                  }
+                                </Mutation>
                               </td>
                               <td>{ moment(createdAt).format('DD/MM/YYYY') }</td>
                             </tr>
@@ -84,8 +135,8 @@ class Home extends PureComponent {
                   </Table>
                   <div>
                     <ReactPaginate 
-                      pageCount={totalCount/10}
-                      pageRangeDisplayed={10}
+                      pageCount={totalCount/limit}
+                      pageRangeDisplayed={limit}
                       initialPage={skip/limit}
                       marginPagesDisplayed={3}
                       containerClassName={'pagination'}
@@ -108,7 +159,7 @@ class Home extends PureComponent {
 export default compose(
   withState('orderQuery', 'updateOrderQuery', {
     skip: 0,
-    limit: 10,
+    limit: 5,
     filter: {},
   }),
   withHandlers({
