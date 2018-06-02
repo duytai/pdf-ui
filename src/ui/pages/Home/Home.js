@@ -9,6 +9,8 @@ import { compose, withHandlers, withState } from 'recompose'
 import update from 'immutability-helper'
 import 'react-select/dist/react-select.css'
 import { Settings } from '../../contexts'
+import swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 import './Home.css'
 
 const CHANGE_ORDER_STATUS = gql `
@@ -29,6 +31,16 @@ const ORDERS = gql `
         cartItems {
           productConfig
         }
+        delivery {
+          address
+          district
+          email
+          name
+          note
+          phone
+          ward
+        }
+        services
         status
         createdAt
       }
@@ -40,6 +52,7 @@ class Home extends PureComponent {
     const { 
       handlePageChange, 
       orderQuery, 
+      handleShowDetails,
     } = this.props
     const { skip, limit } = orderQuery
     const statusOptions = [
@@ -71,12 +84,20 @@ class Home extends PureComponent {
                         <th>Status</th>
                         <th>Created At</th>
                         <th>Download</th>
+                        <th>Details</th>
                       </tr>
                     </thead>
                     <tbody>
                       {
                         orders.map((order, index) => {
-                          const { id, status, createdAt, cartItems } = order
+                          const { 
+                            id, 
+                            status, 
+                            createdAt, 
+                            cartItems, 
+                            delivery,
+                            services,
+                          } = order
                           const orderCode = id.split('-')[0].toUpperCase()
                           return (
                             <tr key={id}>
@@ -150,6 +171,14 @@ class Home extends PureComponent {
                                   ) 
                                 }
                               </Settings.Consumer>
+                              <td>
+                                <button 
+                                  className='btn btn-primary btn-sm'
+                                  onClick={() => handleShowDetails(cartItems, delivery, services)}
+                                >
+                                  Show
+                                </button>
+                              </td>
                             </tr>
                           )
                         })
@@ -186,6 +215,27 @@ export default compose(
     filter: {},
   }),
   withHandlers({
+    handleShowDetails: () => (cartItems, delivery, services) => {
+      const cartMessage = cartItems
+        .map(({ productConfig: {type, shape, size }}) => `${type} - ${shape} - ${size}`).join('\n')
+      const { address, district, email, name, note, phone, ward } = delivery
+      const deliveryMessage = `
+        Address: ${address} - ${ward} - ${district} 
+        Name: ${name}
+        Phone: ${phone}
+        Email: ${email}
+        Note: ${note}
+      ` 
+      const serviceMessage = services.map(({ service, id }) => {
+        if (service === 'facebook') return `http://facebook.com/${id}`
+        return `http://instagram.com/${id}`  
+      }).join('\n')
+      swal('Info', `
+        ${cartMessage}
+        ${deliveryMessage}
+        ${serviceMessage}
+      `)
+    },
     handlePageChange: ({ updateOrderQuery, orderQuery }) => 
     ({ selected: pageIndex }) => {
       const { limit, filter } = orderQuery
