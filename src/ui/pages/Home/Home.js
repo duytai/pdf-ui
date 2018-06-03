@@ -2,7 +2,7 @@ import React, { PureComponent } from 'react'
 import { Query, Mutation } from 'react-apollo'
 import moment from 'moment'
 import gql from 'graphql-tag'
-import { Container, Table } from 'reactstrap'
+import { Container, Table, Input } from 'reactstrap'
 import ReactPaginate from 'react-paginate'
 import Select from 'react-select'
 import { compose, withHandlers, withState } from 'recompose'
@@ -53,6 +53,8 @@ class Home extends PureComponent {
       handlePageChange, 
       orderQuery, 
       handleShowDetails,
+      orderKeyword,
+      updateOrderKeyword,
     } = this.props
     const { skip, limit } = orderQuery
     const statusOptions = [
@@ -64,10 +66,22 @@ class Home extends PureComponent {
       'DONE',
     ]
     return (
-      <Container>
+      <Container style={{paddingTop: 30}}>
+        <Input 
+          value={orderKeyword} 
+          onChange={e => updateOrderKeyword(e.target.value)}
+        />
         <Query 
           query={ORDERS}
-          variables={orderQuery}
+          variables={
+            update(orderQuery, {
+              filter: {
+                id_startsWith: {
+                  $set: orderKeyword,
+                }
+              }
+            })
+          }
         >
           {
             ({ loading, error, data }) => {
@@ -209,10 +223,13 @@ class Home extends PureComponent {
 }
 
 export default compose(
+  withState('orderKeyword', 'updateOrderKeyword', ''),
   withState('orderQuery', 'updateOrderQuery', {
     skip: 0,
     limit: 5,
-    filter: {},
+    filter: {
+      id_startsWith: '',
+    },
   }),
   withHandlers({
     handleShowDetails: () => (cartItems, delivery, services) => {
