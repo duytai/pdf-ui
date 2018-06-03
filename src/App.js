@@ -6,8 +6,8 @@ import { ApolloProvider } from 'react-apollo'
 import { Settings } from './ui/contexts'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
-const URI = 'http://localhost:4000/graphql'
-const FILE_SERVER = 'http://localhost:4000/products' 
+const URI = 'http://mobile.molli.vn:4000/graphql'
+const FILE_SERVER = 'http://mobile.molli.vn:4000/products' 
 const client = new ApolloClient({
   uri: URI,
 })
