@@ -1,9 +1,11 @@
 import React, { Component } from 'react'
-import { compose } from 'recompose'
-import { Container, Table } from 'reactstrap'
+import { compose, withState, withHandlers } from 'recompose'
+import { Container, Table, Input } from 'reactstrap'
 import { Query } from 'react-apollo'
 import moment from 'moment'
 import gql from 'graphql-tag'
+import update from 'immutability-helper'
+import ReactPaginate from 'react-paginate'
 
 const DISCOUNTS = gql `
   query discounts($filter: DiscountFilter!, $skip: Int, $limit: Int) {
@@ -26,17 +28,28 @@ const DISCOUNTS = gql `
 ` 
 class Discount extends Component {
   render() {
+    const {
+      discountKeyword,
+      updateDiscountKeyword,
+      discountQuery,
+      handlePageChange,
+    } = this.props
+    const { skip, limit } = discountQuery
     return (
       <Container style={{paddingTop: 30}}>
+        <Input 
+          value={discountKeyword} 
+          onChange={e => updateDiscountKeyword(e.target.value)}
+        />
         <Query 
           query={DISCOUNTS}
-          variables={{
+          variables={update(discountQuery, {
             filter: {
-              code_startsWith: '',
+              code_startsWith: {
+                $set: discountKeyword,
+              },
             },
-            skip: 0,
-            limit: 10,
-          }}
+          })}
         >
           {
             ({ loading, error, data }) => {
@@ -44,40 +57,53 @@ class Discount extends Component {
               if (error) return <p className='text-center'>{ error.message }</p>
               const { discounts: { totalCount, discounts } } = data
               return (
-                <Table size="sm">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Code</th>
-                      <th>Amount</th>
-                      <th>Percent</th>
-                      <th>IsValid</th>
-                      <th>Begin At</th>
-                      <th>End At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {
-                      discounts.map(({ code, amount, percent, isValid, beginAt, endAt }, index) => (
-                        <tr key={index}>
-                          <th scope="row">{index + 1}</th>
-                          <td>{ code.toUpperCase() }</td>
-                          <td>{ amount }</td>
-                          <td>{ percent }%</td>
-                          <td style={{
-                            backgroundColor: isValid ? 'rgba(0,123,255,.25)' : 'grey' 
-                          }}>{ isValid ? 'TRUE' : 'FALSE' }</td>
+                <div>
+                  <Table size="sm">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Code</th>
+                        <th>Amount</th>
+                        <th>Percent</th>
+                        <th>IsValid</th>
+                        <th>Begin At</th>
+                        <th>End At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {
+                        discounts.map(({ code, amount, percent, isValid, beginAt, endAt }, index) => (
+                          <tr key={index}>
+                            <th scope="row">{index + 1}</th>
+                            <td>{ code.toUpperCase() }</td>
+                            <td>{ amount }</td>
+                            <td>{ percent }%</td>
+                            <td style={{
+                              backgroundColor: isValid ? 'rgba(0,123,255,.25)' : 'grey' 
+                            }}>{ isValid ? 'TRUE' : 'FALSE' }</td>
                           <td style={{ 
                             backgroundColor: beginAt < Date.now() ? 'rgba(0,123,255,.25)' : 'grey' 
                           }}>{ moment(beginAt).format('DD/MM/YYYY') }</td>
-                          <td style={{ 
-                            backgroundColor: endAt > Date.now() ? 'rgba(0,123,255,.25)' : 'grey' 
-                          }}>{ moment(endAt).format('DD/MM/YYYY') }</td>
-                        </tr>
-                      ))
-                    }
-                  </tbody>
-                </Table>
+                        <td style={{ 
+                          backgroundColor: endAt > Date.now() ? 'rgba(0,123,255,.25)' : 'grey' 
+                        }}>{ moment(endAt).format('DD/MM/YYYY') }</td>
+                    </tr>
+                        ))
+                      }
+                    </tbody>
+                  </Table>
+                  <ReactPaginate 
+                    pageCount={totalCount/limit}
+                    pageRangeDisplayed={limit}
+                    initialPage={skip/limit}
+                    marginPagesDisplayed={3}
+                    containerClassName={'pagination'}
+                    subContainerClassName={'pages pagination'}
+                    activeClassName={'active'}
+                    breakClassName={'break-me'}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
               )
             }
           }
@@ -88,4 +114,23 @@ class Discount extends Component {
 }
 
 export default compose(
+  withState('discountKeyword', 'updateDiscountKeyword', ''),
+  withState('discountQuery', 'updateDiscountQuery', {
+    skip: 0,
+    limit: 2,
+    filter: {
+      code_startsWith: '',
+    },
+  }),
+  withHandlers({
+    handlePageChange: ({ discountQuery, updateDiscountQuery }) => ({ selected: pageIndex }) => {
+      const { limit, filter } = discountQuery 
+      const skip = pageIndex * limit 
+      updateDiscountQuery({
+        skip,
+        limit,
+        filter,
+      })
+    }
+  })
 )(Discount)
