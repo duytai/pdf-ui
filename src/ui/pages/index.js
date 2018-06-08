@@ -1,5 +1,7 @@
-import Home from './Home/Home.js'
+import Home from './Home/Home'
+import Discount from './Discount/Discount'
 
 export {
   Home,
+  Discount,
 }
