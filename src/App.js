@@ -7,8 +7,8 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import { Home, Discount } from './ui/pages'
 import { MainLayout } from '../src/layouts'
 
-const URI = 'http://localhost:4000/graphql'
-const FILE_SERVER = 'http://localhost:4000/products' 
+const URI = 'http://mobile.molli.vn:4000/graphql'
+const FILE_SERVER = 'http://mobile.molli.vn:4000/products' 
 const client = new ApolloClient({
   uri: URI,
 })
