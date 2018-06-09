@@ -8,6 +8,7 @@ import {
   NavItem,
   NavLink,
 } from 'reactstrap'
+import { Link } from 'react-router-dom'
 
 
 export default class MainLayout extends Component {
@@ -32,10 +33,14 @@ export default class MainLayout extends Component {
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="ml-auto" navbar>
               <NavItem>
-                <NavLink href="/orders">Orders</NavLink>
+                <NavLink>
+                  <Link to="/orders">Orders</Link>
+                </NavLink>
               </NavItem>
               <NavItem>
-                <NavLink href="/discounts">Discounts</NavLink>
+                <NavLink>
+                  <Link to="/discounts">Discounts</Link>
+                </NavLink>
               </NavItem>
             </Nav>
           </Collapse>
